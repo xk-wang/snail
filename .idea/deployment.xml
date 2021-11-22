@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PublishConfigData" autoUpload="Always" serverName="222-18 (f74e26e5-474c-4752-82fe-082fe9ed4c11)" remoteFilesAllowedToDisappearOnAutoupload="false">
+    <serverData>
+      <paths name="18 (6f6f89f6-3f77-4f12-8f33-842244a44743)">
+        <serverdata>
+          <mappings>
+            <mapping local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="222-18 (f74e26e5-474c-4752-82fe-082fe9ed4c11)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/home/wxk/cpp/springsnail" local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+    </serverData>
+    <option name="myAutoUpload" value="ALWAYS" />
+  </component>
+</project>

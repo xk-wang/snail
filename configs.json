@@ -1,0 +1,11 @@
+{
+  "listen": {
+    "hostname": "127.0.0.1",
+    "port": 5656,
+    "connect": 2
+  },
+  "logical_host": [
+    {"hostname":  "18.232.227.86", "port":  80, "connect": 2},
+    {"hostname":  "18.232.227.86", "port":  80, "connect": 2}
+  ]
+}
