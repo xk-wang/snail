@@ -20,8 +20,13 @@ public:
     RET_CODE write_clt();
     RET_CODE read_srv();
     RET_CODE write_srv();
+    int get_cltfd() const { return m_cltfd; }
+    int get_srvfd() const { return m_srvfd; }
+    bool get_m_srv_status() const { return m_srv_closed; }
+    void close_m_srv_status() { m_srv_closed = true; }
+    const sockaddr_in get_m_srv_address() const { return m_srv_address; }
 
-public:
+private:
     static const int BUF_SIZE = 2048;
     char* m_clt_buf;
     int m_clt_read_idx;
@@ -37,7 +42,6 @@ public:
 
     bool m_srv_closed;
 
-private:
     const Logger& logger = Logger::create_logger();
 };
 

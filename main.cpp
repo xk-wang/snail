@@ -67,7 +67,6 @@ void parse_json(string& cfg_file, vector<host>&balance_srv, vector<host>&logical
         tmp_host.m_connect = tmp["connect"];
         logical_srv.push_back(tmp_host);
     }
-    std::cout<<logical_srv.size()<<" "<<balance_srv[0].m_hostname<<std::endl;
 }
 
 int main(int argc, char* argv[]){

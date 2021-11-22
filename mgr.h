@@ -21,10 +21,10 @@ class mgr{
 public:
     mgr(int epollfd, const host& srv);
     ~mgr();
-    int conn2srv(const sockaddr_in& address);
+    int conn2srv(const sockaddr_in& address) const;
     conn* pick_conn(int sockfd);
     void free_conn(conn* connection);
-    int get_used_conn_cnt();
+    int get_used_conn_cnt() const;
     void recycle_conns();
     RET_CODE process(int fd, OP_TYPE type);
 

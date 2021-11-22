@@ -7,10 +7,10 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <assert.h>
-#include <stdio.h>
+#include <cstdio>
 #include <unistd.h>
 #include <errno.h>
-#include <string.h>
+#include <cstring>
 #include <fcntl.h>
 #include <stdlib.h>
 #include <sys/epoll.h>
@@ -22,8 +22,6 @@
 #include <exception>
 #include "log.hpp"
 #include "mgr.h"
-
-//using std::pair;
 
 int mgr::m_epollfd = -1;
 
@@ -45,7 +43,7 @@ mgr::mgr(int epollfd, const host& srv): m_logical_srv(srv){
         }
         else{
             logger.log(LOG_INFO, __FILE__, __LINE__, "build connection %d to server success", i);
-            conn* tmp = NULL;
+            conn* tmp = nullptr;
             try{
                 tmp = new conn;
             }catch(...){
@@ -65,13 +63,13 @@ void mgr::recycle_conns(){
         sleep(1);
         int srvfd=iter.first;
         conn* tmp=iter.second;
-        srvfd = conn2srv(tmp->m_srv_address);
+        srvfd = conn2srv(tmp->get_m_srv_address());
         if(srvfd<0) {
             logger.log(LOG_ERR, __FILE__, __LINE__, "%s", "fix connection failed");
         }
         else{
             logger.log(LOG_INFO, __FILE__, __LINE__, "%s", "fix connection success");
-            tmp->init_srv(srvfd, tmp->m_srv_address);
+            tmp->init_srv(srvfd, tmp->get_m_srv_address());
             m_conns[srvfd] = tmp;
         }
         m_freed.clear();
@@ -82,29 +80,27 @@ RET_CODE mgr::process(int fd, OP_TYPE type){
     conn* connection = m_used[fd];
     if(!connection) return NOTHING;
     RET_CODE res;
-    if(connection->m_cltfd==fd) {
-        int srvfd = connection->m_srvfd;
+    if(connection->get_srvfd()==fd) {
+        int srvfd = connection->get_srvfd();
         switch (type) {
             case READ:{
                 res = connection->read_clt();
                 switch (res) {
                     case OK:
-                        logger.log(LOG_DEBUG, __FILE__, __LINE__, "content read from client: %s", connection->m_clt_buf);
+                        logger.log(LOG_DEBUG, __FILE__, __LINE__, "content read from client: %s", connection->get_cltfd());
                     case BUFFER_FULL: {
                         modfd(m_epollfd, srvfd, EPOLLOUT);
                         break;
                     }
                     case IOERR:
                     case CLOSED: {
-                        logger.log(LOG_ERR, __FILE__, __LINE__, "the client read is freed %d", 1);
                         free_conn(connection);
                         return CLOSED;
                     }
                     default:
                         break;
                 }
-                if (connection->m_srv_closed) {
-                    logger.log(LOG_ERR, __FILE__, __LINE__, "child read and srv close is freed %d", 1);
+                if (connection->get_m_srv_status()) {
                     free_conn(connection);
                     return CLOSED;
                 }
@@ -124,7 +120,6 @@ RET_CODE mgr::process(int fd, OP_TYPE type){
                     }
                     case IOERR:
                     case CLOSED: {
-                        logger.log(LOG_ERR, __FILE__, __LINE__, "child write is freed %d", 1);
                         free_conn(connection);
                         return CLOSED;
                     }
@@ -132,8 +127,7 @@ RET_CODE mgr::process(int fd, OP_TYPE type){
                         break;
                 }
 
-                if (connection->m_srv_closed) {
-                    logger.log(LOG_ERR, __FILE__, __LINE__, "child write and srv close is freed %d", 1);
+                if (connection->get_m_srv_status()) {
                     free_conn(connection);
                     return CLOSED;
                 }
@@ -144,14 +138,14 @@ RET_CODE mgr::process(int fd, OP_TYPE type){
                 break;
             }
         }
-    }else if(connection->m_srvfd==fd){
-        int cltfd = connection->m_cltfd;
+    }else if(connection->get_srvfd()==fd){
+        int cltfd = connection->get_cltfd();
         switch(type){
             case READ:{
                 res = connection->read_srv();
                 switch(res){
                     case OK:
-                        logger.log(LOG_DEBUG, __FILE__, __LINE__, "content read from server: %s", connection->m_srv_buf);
+                        logger.log(LOG_DEBUG, __FILE__, __LINE__, "content read from server: %s", connection->get_srvfd());
                     case BUFFER_FULL:{
                             modfd(m_epollfd, cltfd, EPOLLOUT);
                             break;
@@ -159,7 +153,7 @@ RET_CODE mgr::process(int fd, OP_TYPE type){
                     case IOERR:
                     case CLOSED:{
                             modfd(m_epollfd, cltfd, EPOLLOUT);
-                            connection->m_srv_closed=true;
+                            connection->close_m_srv_status();
                             break;
                     }
                     default: break;
@@ -181,7 +175,7 @@ RET_CODE mgr::process(int fd, OP_TYPE type){
                     case IOERR:
                     case CLOSED:{
                         modfd(m_epollfd, cltfd, EPOLLOUT);
-                        connection->m_srv_closed = true;
+                        connection->close_m_srv_status();
                         break;
                     }
                     default: break;
@@ -206,14 +200,14 @@ RET_CODE mgr::process(int fd, OP_TYPE type){
 conn* mgr::pick_conn(int cltfd){
     if(m_conns.empty()){
         logger.log(LOG_ERR, __FILE__, __LINE__, "%s", "not enough srv connections to server");
-        return NULL;
+        return nullptr;
     }
     map<int, conn*>::iterator iter = m_conns.begin();
     int srvfd = iter->first;
     conn* tmp = iter->second;
     if(!tmp){
         logger.log(LOG_ERR, __FILE__, __LINE__, "%s", "empty server connection object");
-        return NULL;
+        return nullptr;
     }
     m_conns.erase(iter);
     m_used[srvfd] = tmp;
@@ -225,8 +219,8 @@ conn* mgr::pick_conn(int cltfd){
 }
 
 void mgr::free_conn(conn* connection){
-    int cltfd = connection->m_cltfd;
-    int srvfd = connection->m_srvfd;
+    int cltfd = connection->get_cltfd();
+    int srvfd = connection->get_srvfd();
     closefd(m_epollfd, cltfd);
     closefd(m_epollfd, srvfd);
     m_used.erase(cltfd);
@@ -236,7 +230,7 @@ void mgr::free_conn(conn* connection){
     logger.log(LOG_ERR, __FILE__, __LINE__, "the connection is freed %d", 1);
 }
 
-int mgr::conn2srv(const sockaddr_in& address){
+int mgr::conn2srv(const sockaddr_in& address) const{
     int sockfd = socket(PF_INET, SOCK_STREAM, 0);
     if(sockfd<0) return -1;
     if(connect(sockfd, (struct sockaddr*)&address, sizeof(address))!=0){
@@ -246,7 +240,7 @@ int mgr::conn2srv(const sockaddr_in& address){
     return sockfd;
 }
 
-int mgr::get_used_conn_cnt(){
+int mgr::get_used_conn_cnt() const{
     return m_used.size();
 }
 

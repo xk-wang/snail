@@ -87,7 +87,7 @@ public:
 };
 
 template<typename C, typename H, typename M>
-processpool<C, H, M>* processpool<C, H, M>::m_instance = NULL;
+processpool<C, H, M>* processpool<C, H, M>::m_instance = nullptr;
 
 template<typename C, typename H, typename M>
 processpool<C, H, M>::processpool(int listenfd, int process_number)
