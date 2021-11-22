@@ -5,7 +5,7 @@
 #include <exception>
 #include <errno.h>
 #include <string.h>
-#include "log.h"
+#include "log.hpp"
 #include "conn.h"
 
 conn::conn(){
@@ -47,7 +47,7 @@ RET_CODE conn::read_clt() {
     int bytes_read = 0;
     while (true) {
         if (m_clt_read_idx >= BUF_SIZE) {
-            log(LOG_ERR, __FILE__, __LINE__, "%s", "the client read buffer is full, let server write");
+            logger.log(LOG_ERR, __FILE__, __LINE__, "%s", "the client read buffer is full, let server write");
             return BUFFER_FULL;
         }
         bytes_read = recv(m_cltfd, m_clt_buf + m_clt_read_idx, BUF_SIZE - m_clt_read_idx, 0);
@@ -72,7 +72,7 @@ RET_CODE conn::write_clt() {
             if(errno==EAGAIN|| errno==EWOULDBLOCK){
                 return TRY_AGAIN;
             }
-            log(LOG_ERR, __FILE__, __LINE__, "write client socket failed, %s", strerror(errno));
+            logger.log(LOG_ERR, __FILE__, __LINE__, "write client socket failed, %s", strerror(errno));
             return IOERR;
         }else if(bytes_write==0) return CLOSED;
         m_srv_write_idx += bytes_write;
@@ -83,7 +83,7 @@ RET_CODE conn::read_srv(){
     int bytes_read = 0;
     while(true){
         if(m_srv_read_idx>=BUF_SIZE){
-            log(LOG_ERR, __FILE__, __LINE__, "%s", "the server reader buffer is full, let server write");
+            logger.log(LOG_ERR, __FILE__, __LINE__, "%s", "the server reader buffer is full, let server write");
             return BUFFER_FULL;
         }
         bytes_read = recv( m_srvfd, m_srv_buf + m_srv_read_idx, BUF_SIZE - m_srv_read_idx, 0 );
@@ -91,7 +91,7 @@ RET_CODE conn::read_srv(){
             if(errno==EAGAIN|| errno==EWOULDBLOCK) break;
             return IOERR;
         }else if(bytes_read==0){
-            log( LOG_ERR, __FILE__, __LINE__, "%s", "the server should not close the persist connection" );
+            logger.log( LOG_ERR, __FILE__, __LINE__, "%s", "the server should not close the persist connection" );
             return CLOSED;
         }
         m_srv_read_idx += bytes_read;
@@ -111,7 +111,7 @@ RET_CODE conn::write_srv() {
             if(errno==EAGAIN|| errno==EWOULDBLOCK){
                 return TRY_AGAIN;
             }
-            log(LOG_ERR, __FILE__, __LINE__, "write server socket failed, %s", strerror(errno));
+            logger.log(LOG_ERR, __FILE__, __LINE__, "write server socket failed, %s", strerror(errno));
             return IOERR;
         }else if(bytes_write==0) return CLOSED;
         m_clt_write_idx += bytes_write;

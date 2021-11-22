@@ -27,12 +27,14 @@ public:
     int get_used_conn_cnt();
     void recycle_conns();
     RET_CODE process(int fd, OP_TYPE type);
+
 private:
     static int m_epollfd;
     map<int, conn*> m_conns;
     map<int, conn*> m_used;
     map<int, conn*> m_freed;
     host m_logical_srv;
+    const Logger& logger = Logger::create_logger();
 };
 
 #endif //SPRINGSNAIL_MGR_H

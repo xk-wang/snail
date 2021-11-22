@@ -7,6 +7,7 @@
 
 #include <arpa/inet.h>
 #include "fdwrapper.h"
+#include "log.hpp"
 
 class conn{
 public:
@@ -35,6 +36,9 @@ public:
     int m_srvfd;
 
     bool m_srv_closed;
+
+private:
+    const Logger& logger = Logger::create_logger();
 };
 
 #endif //SPRINGSNAIL_CONN_H

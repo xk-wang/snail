@@ -21,7 +21,7 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <vector>
-#include "log.h"
+#include "log.hpp"
 #include "fdwrapper.h"
 
 using std::vector;
@@ -74,6 +74,7 @@ private:
     int m_stop;
     process* m_sub_process;
     static processpool<C, H, M>* m_instance;
+    const Logger& logger = Logger::create_logger();
 public:
     static processpool<C, H, M>* create(int listenfd, int process_number=8){
         if(!m_instance) m_instance = new processpool<C, H, M>(listenfd, process_number);
@@ -136,7 +137,7 @@ void processpool<C, H, M>::run_parent() {
     while (!m_stop) {
         number = epoll_wait(m_epollfd, events, MAX_EVENT_NUMBER, EPOLL_WAIT_TIME);
         if ((number < 0) && (errno != EINTR)) {
-            log(LOG_ERR, __FILE__, __LINE__, "%s", "epoll failure");
+            logger.log(LOG_ERR, __FILE__, __LINE__, "%s", "epoll failure");
             break;
         }
         for (int i = 0; i < number; ++i) {
@@ -144,7 +145,7 @@ void processpool<C, H, M>::run_parent() {
             if (sockfd == m_listenfd) {
                 int idx = get_most_free_srv();
                 send(m_sub_process[idx].m_pipefd[0], (char *) &new_conn, sizeof(new_conn), 0);
-                log(LOG_INFO, __FILE__, __LINE__, "send request to child %d", idx);
+                logger.log(LOG_INFO, __FILE__, __LINE__, "send request to child %d", idx);
             }else if((sockfd==sig_pipefd[0])&&(events[i].events&EPOLLIN)){
                 char signals[1024];
                 ret = recv(sig_pipefd[0], signals, sizeof(signals), 0);
@@ -160,7 +161,7 @@ void processpool<C, H, M>::run_parent() {
                             while((pid=waitpid(-1, &stat, WNOHANG))>0){
                                 for(int i=0;i<m_process_number;++i){
                                     if(m_sub_process[i].m_pid == pid){
-                                        log(LOG_INFO, __FILE__, __LINE__, "child %d join", i);
+                                        logger.log(LOG_INFO, __FILE__, __LINE__, "child %d join", i);
                                         close(m_sub_process[i].m_pipefd[0]);
                                         m_sub_process[i].m_pid = -1;
                                     }
@@ -178,7 +179,7 @@ void processpool<C, H, M>::run_parent() {
                         }
                         case SIGTERM:
                         case SIGINT:{
-                            log(LOG_INFO, __FILE__, __LINE__, "%s", "kill all the child now");
+                            logger.log(LOG_INFO, __FILE__, __LINE__, "%s", "kill all the child now");
                             for( int i = 0; i < m_process_number; ++i )
                             {
                                 int pid = m_sub_process[i].m_pid;
@@ -221,7 +222,7 @@ void processpool<C, H, M>::run_child(const vector<H>& arg){
     while(!m_stop){
         number = epoll_wait(m_epollfd, events, MAX_EVENT_NUMBER, EPOLL_WAIT_TIME);
         if((number<0)&&(errno!=EINTR)){
-            log(LOG_ERR, __FILE__, __LINE__, "%s", "epoll failure");
+            logger.log(LOG_ERR, __FILE__, __LINE__, "%s", "epoll failure");
             break;
         }
         // 空闲时处理释放的资源
@@ -240,7 +241,7 @@ void processpool<C, H, M>::run_child(const vector<H>& arg){
                     socklen_t client_addrlength = sizeof(client_address);
                     int connfd = accept(m_listenfd, (struct sockaddr*)&client_address, &client_addrlength);
                     if(connfd<0){
-                        log(LOG_ERR, __FILE__, __LINE__, "errno: %s", strerror(errno));
+                        logger.log(LOG_ERR, __FILE__, __LINE__, "errno: %s", strerror(errno));
                         continue;
                     }
                     add_read_fd(m_epollfd, connfd);
